@@ -8,7 +8,7 @@ SSH Sentinel deliberately accepts untrusted SSH connections. It is a honeypot, n
 - Only the JSONL spool is shared: read/write for the sensor, read-only for the dashboard. The database/account are only in the web volume; the SSH host key is only in the sensor volume.
 - JSONL is treated as untrusted data: schema validation and limits on lines, UTC timestamps, UUIDs, and IPs; symbolic links are not followed.
 - The dashboard uses escaped templates, local scripts, CSP, CSRF protection, and opaque session tokens stored only as SHA256 hashes. The account password uses scrypt N=32768, r=8, p=1 and a random 128-bit salt. Resetting the account invalidates all sessions.
-- The host firewall must block new sensor connections to the LAN, host, and internet. The Docker network alone does not do this. The [detailed guide](docs/firewall.md) covers rules, persistence before Docker starts, and required verification. Do not automatically install a firewall inside a container.
+- The host firewall must block new sensor connections to the LAN, host, and internet. The Docker network alone does not do this. The [native Linux guide](docs/firewall.md) covers host rules, boot ordering, and verification. The opt-in Windows profile uses the separate one-shot VM administration helper described below; no firewall is installed inside the running sensor or dashboard.
 
 ## Captured sensitive data
 
@@ -17,6 +17,8 @@ At the requester's explicit instruction, `LOG_PASSWORDS=true`. It stores SSH cli
 The dashboard is local-only by default. Prefer an administrative SSH tunnel for remote administration. For a LAN/HTTPS proxy, configure allowed hostnames and Secure cookies correctly. SameSite Strict cookies are sent only in same-site contexts; public HTTP access is unsuitable.
 
 ## Operational limitations
+
+The opt-in [Windows public TCP 22 profile](docs/windows-port22.md) uses a temporary administrative helper with `NET_ADMIN` in the Docker Desktop VM to install rules only for the sensor subnet. The honeypot services remain unprivileged. Sensor `restart: "no"` requires rerunning the guarded helper after VM restarts; bypassing it can bypass prerequisite isolation. Windows inbound rules require administrator approval, and internet reachability needs an off-host test.
 
 Lossless logging is not guaranteed with a full disk, overload, or a compromised sensor. A compromised sensor can forge/delete its own events. JSONL is not a cryptographically signed audit trail. A container does not replace a separate VM/host and network isolation. The host kernel and Docker daemon are outside the application's protection. Retention is not secure physical erasure. Do not expose the host's Docker socket.
 

@@ -1,0 +1,7 @@
+# Keep executable/configuration text usable when checked out on Windows.
+* text=auto
+*.sh text eol=lf
+*.ps1 text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+Dockerfile* text eol=lf

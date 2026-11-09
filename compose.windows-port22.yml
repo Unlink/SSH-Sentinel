@@ -1,0 +1,7 @@
+# Use through scripts/start-windows-port22.ps1 so VM isolation is applied first.
+# Requires Compose 2.24.4+ for !override; Docker Desktop supplies a recent Compose.
+services:
+  sensor:
+    restart: "no"
+    ports: !override
+      - "0.0.0.0:22:2222"

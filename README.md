@@ -42,6 +42,10 @@ ssh -p 2222 root@127.0.0.1
 
 If the client only tries keys, add `-o PreferredAuthentications=password -o PubkeyAuthentication=no`. Events appear in the dashboard within approximately five seconds. Statistics and charts refresh every ten seconds. Times are in UTC. The 24-hour range includes the current hour and 23 preceding hourly buckets; 7/30-day ranges use calendar days, including today.
 
+## Public TCP 22 on Windows
+
+For an explicit public TCP 22 deployment on Windows/Docker Desktop, follow [the Windows guide](docs/windows-port22.md). Its guarded startup helper applies sensor-specific VM firewall rules before publishing `0.0.0.0:22`, keeps the dashboard private, and requires rerunning after Docker Desktop restarts. A separate administrator command enables the named Windows inbound rule. This profile also needs no `.env` file.
+
 ## Dashboard
 
 - Counts of TCP connections, password attempts, unique IPs, and simulated shells.
@@ -121,7 +125,7 @@ SSH_BIND=0.0.0.0 docker compose up -d --force-recreate sensor
 
 Supply this override again on future container recreations, or persist it in an optional `.env`/Compose override. From another machine, verify that incoming SSH connections to the honeypot still work. Persist the rules using a verified boot/reload procedure (for example, the systemd setup loaded before Docker in the detailed firewall guide) and **repeat verification after host/Docker restarts and network changes**. With iptables-persistent or another firewall manager, also verify rule-loading order and behavior when Docker creates its chains. The application cannot confirm the correctness of another host's firewall.
 
-Docker Desktop on Windows is suitable for local tests. Verify the Linux host firewall and production isolation on the target Linux machine; Windows rules do not behave like rules on a native Linux Docker host.
+For native Linux deployments, verify the host firewall on the target Linux machine. Docker Desktop has a separate VM and Windows firewall boundary; use the opt-in [Windows TCP 22 procedure](docs/windows-port22.md) and its live VM isolation checks instead of assuming native Linux systemd rules apply to Windows.
 
 ## Router and public port
 
@@ -196,6 +200,44 @@ Tests create their own temporary directories and SSH ports; they never execute a
 Update the runtime by rebuilding containers; there is no need to change the host's system Python. `requirements-bootstrap.lock` pins the pip 26.3 installer; Python runtime/test dependencies have their own hash locks. HTMX 2.0.11 and Chart.js 4.6.1 are refreshed with `scripts/update_vendor.py`, which verifies the npm archive's SHA512 checksum and writes file SHA256 checksums to `static/vendor/manifest.json`.
 
 The detailed security audit and unresolved system findings are in the [audit reports](docs/audit/SECURITY-AUDIT-2026-11-07.md). A successful pip audit does not establish the absence of CVEs in Debian packages or vendored build tools.
+
+## GitHub Actions and container publishing
+
+The **Checks and container images** workflow tests the application and dependencies before building both images for `linux/amd64` and `linux/arm64`.
+
+Images are published to GitHub Container Registry:
+
+- `ghcr.io/unlink/ssh-sentinel-sensor`
+- `ghcr.io/unlink/ssh-sentinel-web`
+
+Names are derived automatically from the GitHub repository and converted to registry-compatible lowercase names, so forks publish under their own namespace.
+
+| Event | Build | Push to GHCR |
+|---|---|---|
+| Pull request | Both images after successful tests | Never |
+| Push to the repository's default branch | Both images after successful tests | Yes; branch, commit SHA, and `latest` tags |
+| Push of a tag starting with `v` | Both images after successful tests | Yes; Git tag and commit SHA; a valid semantic version also gets a version tag such as `1.2.3` |
+| Push to another branch | Both images after successful tests | No |
+| Manual workflow run | Both images after successful tests | Only when **publish** is checked |
+
+For a manual release, open **Actions → Checks and container images → Run workflow**, select the branch, and check **publish**. Uncheck it for a build-only run. Authentication uses the automatically provided `GITHUB_TOKEN` with job-scoped `packages: write`; no personal access token, Docker Hub secret, or `.env` file is required. Repository/organization policies must permit package publishing.
+
+For a versioned release, push a version tag such as `v1.2.3` after committing the desired source revision. The default-branch `latest` tag is updated only by builds of that branch; publishing an older release tag does not overwrite it. Immutable commit tags use the `sha-<full-commit-sha>` format. Pull requests do not log in to GHCR or push images, including fork PRs.
+
+After a successful publish, the package appears in the repository owner's **Packages** area. New GHCR packages may be private; adjust package visibility if anonymous pulls are required. If a package already exists, grant this repository access in the package's **Manage Actions access** settings. Build output includes the image digest, source labels, provenance and SBOM. Shared build caches are scoped separately for the sensor and web.
+
+Example pull after a default-branch publish (authenticate to GHCR first for private packages):
+
+```bash
+docker pull ghcr.io/unlink/ssh-sentinel-sensor:latest
+docker pull ghcr.io/unlink/ssh-sentinel-web:latest
+```
+
+The default Compose configuration still builds local source. Publishing a package does not deploy or replace running containers automatically. Workflow validation can be run with [actionlint](https://github.com/rhysd/actionlint); actual publishing is verified only after a workflow completes on GitHub.
+
+## AI-assisted development
+
+SSH Sentinel was built with assistance from **ChatGPT AI**, including implementation, documentation, and automated testing. AI-assisted security reviews are recorded in `docs/audit`; they do not replace independent review or verification of the target deployment.
 
 ## Troubleshooting
 
