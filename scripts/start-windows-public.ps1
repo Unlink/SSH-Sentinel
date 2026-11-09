@@ -1,10 +1,10 @@
 <#
 .SYNOPSIS
-Applies Docker Desktop VM isolation before starting the honeypot on TCP 22.
+Applies Docker Desktop VM isolation before starting the honeypot on TCP 2222.
 .DESCRIPTION
 Run again after every Docker Desktop/VM restart. The public sensor uses
 restart=no so it cannot restart before the VM firewall has been reapplied.
-Does not modify Windows firewall policy or any unrelated container.
+Starts a native Windows proxy; does not modify Windows firewall policy or unrelated containers.
 #>
 [CmdletBinding()]
 param()
@@ -13,7 +13,7 @@ $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 $projectRoot = Split-Path -Parent $PSScriptRoot
 $dockerCommand = (Get-Command docker -ErrorAction Stop).Source
-$composeFiles = @('compose', '-f', (Join-Path $projectRoot 'docker-compose.yml'), '-f', (Join-Path $projectRoot 'compose.windows-port22.yml'))
+$composeFiles = @('compose', '-f', (Join-Path $projectRoot 'docker-compose.yml'), '-f', (Join-Path $projectRoot 'compose.windows-public.yml'))
 
 function Invoke-Docker {
     param([string[]]$DockerArguments)
@@ -36,16 +36,29 @@ if ($configuration.services.web.ports[0].host_ip -ne '127.0.0.1') {
     throw 'The dashboard must remain bound to 127.0.0.1.'
 }
 
-$listeners = @(Get-NetTCPConnection -State Listen -LocalPort 22 -ErrorAction SilentlyContinue)
+if ($configuration.services.sensor.ports[0].host_ip -ne '127.0.0.1' -or
+    $configuration.services.sensor.ports[0].published -ne '2223' -or
+    $configuration.services.sensor.environment.SENTINEL_PROXY_PROTOCOL -ne 'true') {
+    throw 'The trusted PROXY backend must be bound only to 127.0.0.1:2223 with mandatory PROXY parsing.'
+}
+
+# Permit migration from our older Docker-public binding, or our own native proxy.
+$listeners = @(Get-NetTCPConnection -State Listen -LocalPort 2222 -ErrorAction SilentlyContinue)
 if ($listeners.Count -gt 0) {
     $ownPorts = & $dockerCommand compose -f (Join-Path $projectRoot 'docker-compose.yml') ps sensor --format json
-    if ($LASTEXITCODE -ne 0) { throw 'Could not inspect the current sensor port bindings.' }
+    if ($LASTEXITCODE -ne 0) { throw 'Could not inspect sensor bindings.' }
     $currentSensor = $ownPorts | ConvertFrom-Json
     $ownBinding = @($currentSensor.Publishers | Where-Object {
-        $_.URL -eq '0.0.0.0' -and $_.PublishedPort -eq 22 -and $_.TargetPort -eq 2222
+        $_.URL -eq '0.0.0.0' -and $_.PublishedPort -eq 2222 -and $_.TargetPort -eq 2222
     })
     if ($ownBinding.Count -eq 0) {
-        throw 'Port 22 is already occupied. No existing SSH server will be stopped.'
+        $proxyScript = Join-Path $PSScriptRoot 'windows_proxy.py'
+        foreach ($listener in $listeners) {
+            $process = Get-CimInstance Win32_Process -Filter "ProcessId=$($listener.OwningProcess)"
+            if (-not $process -or -not $process.CommandLine -or -not $process.CommandLine.Contains($proxyScript)) {
+                throw 'Port 2222 is occupied by another process. No existing server will be stopped.'
+            }
+        }
     }
 }
 
@@ -61,6 +74,7 @@ Invoke-Docker -DockerArguments $firewallArguments
 
 # A failed firewall command exits above, leaving the public sensor stopped.
 Invoke-Docker -DockerArguments ($composeFiles + @('up', '-d', '--build', '--wait'))
-Write-Host 'Honeypot listening on 0.0.0.0:22; dashboard remains on 127.0.0.1:8080.'
-Write-Host 'Verify the live egress checks in docs/windows-port22.md before accepting internet traffic.'
+& (Join-Path $PSScriptRoot 'start-windows-proxy.ps1')
+Write-Host 'Native proxy on 0.0.0.0:2222; trusted backend on 127.0.0.1:2223; dashboard on 127.0.0.1:8080.'
+Write-Host 'Verify the live egress checks in docs/windows-public.md before accepting internet traffic.'
 Write-Host 'Run this helper again after restarting Docker Desktop. Do not use the override directly.'

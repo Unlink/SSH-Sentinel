@@ -1,0 +1,9 @@
+# Use through scripts/start-windows-public.ps1 so VM isolation is applied first.
+# Requires Compose 2.24.4+ for !override; Docker Desktop supplies a recent Compose.
+services:
+  sensor:
+    restart: "no"
+    environment:
+      SENTINEL_PROXY_PROTOCOL: "true"
+    ports: !override
+      - "127.0.0.1:2223:2222"

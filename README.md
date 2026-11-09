@@ -42,9 +42,9 @@ ssh -p 2222 root@127.0.0.1
 
 If the client only tries keys, add `-o PreferredAuthentications=password -o PubkeyAuthentication=no`. Events appear in the dashboard within approximately five seconds. Statistics and charts refresh every ten seconds. Times are in UTC. The 24-hour range includes the current hour and 23 preceding hourly buckets; 7/30-day ranges use calendar days, including today.
 
-## Public TCP 22 on Windows
+## Public TCP 2222 on Windows
 
-For an explicit public TCP 22 deployment on Windows/Docker Desktop, follow [the Windows guide](docs/windows-port22.md). Its guarded startup helper applies sensor-specific VM firewall rules before publishing `0.0.0.0:22`, keeps the dashboard private, and requires rerunning after Docker Desktop restarts. A separate administrator command enables the named Windows inbound rule. This profile also needs no `.env` file.
+For an explicit public TCP 2222 deployment on Windows/Docker Desktop, follow [the Windows guide](docs/windows-public.md). Its guarded startup helper applies sensor-specific VM firewall rules and starts a native Windows Python proxy on `0.0.0.0:2222` to preserve real client IPs. The Docker backend binds only to `127.0.0.1:2223`, and the dashboard stays private. This profile needs a Windows Python environment and must be started again after Docker Desktop restarts. A separate administrator command enables the named Windows inbound rule. This profile also needs no `.env` file.
 
 ## Dashboard
 
@@ -125,7 +125,7 @@ SSH_BIND=0.0.0.0 docker compose up -d --force-recreate sensor
 
 Supply this override again on future container recreations, or persist it in an optional `.env`/Compose override. From another machine, verify that incoming SSH connections to the honeypot still work. Persist the rules using a verified boot/reload procedure (for example, the systemd setup loaded before Docker in the detailed firewall guide) and **repeat verification after host/Docker restarts and network changes**. With iptables-persistent or another firewall manager, also verify rule-loading order and behavior when Docker creates its chains. The application cannot confirm the correctness of another host's firewall.
 
-For native Linux deployments, verify the host firewall on the target Linux machine. Docker Desktop has a separate VM and Windows firewall boundary; use the opt-in [Windows TCP 22 procedure](docs/windows-port22.md) and its live VM isolation checks instead of assuming native Linux systemd rules apply to Windows.
+For native Linux deployments, verify the host firewall on the target Linux machine. Docker Desktop has a separate VM and Windows firewall boundary; use the opt-in [Windows TCP 2222 procedure](docs/windows-public.md) and its live VM isolation checks instead of assuming native Linux systemd rules apply to Windows.
 
 ## Router and public port
 

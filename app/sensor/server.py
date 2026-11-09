@@ -15,6 +15,7 @@ from app.sensor.channel import HoneypotChannel
 from app.sensor.events import EventWriter
 from app.sensor.fake_shell import FakeShell
 from app.sensor.transport import BoundedSSHConnection
+from app.sensor.proxy_protocol import ProxyProtocol
 
 
 class HoneypotSession(asyncssh.SSHServerSession):
@@ -229,7 +230,12 @@ async def start_sensor(settings):
         compression_algs=None,
         allow_scp=False, sftp_factory=None, agent_forwarding=False, x11_forwarding=False,
         max_pktsize=32768, window=65536)
-    listener = await loop.create_server(lambda: BoundedSSHConnection(loop, options),
+    pending = set()
+    def protocol_factory():
+        factory = lambda: BoundedSSHConnection(loop, options)
+        return ProxyProtocol(factory, pending, settings.max_connections) if settings.proxy_protocol else factory()
+
+    listener = await loop.create_server(protocol_factory,
                                         settings.ssh_host, settings.ssh_port, backlog=64)
     server = asyncssh.SSHAcceptor(listener, options)
     server.event_writer = writer

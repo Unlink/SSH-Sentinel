@@ -11,6 +11,7 @@ class Settings:
     key_dir: Path = Path('/keys')
     ssh_host: str = '0.0.0.0'
     ssh_port: int = 2222
+    proxy_protocol: bool = False
     log_passwords: bool = True
     max_connections: int = 64
     max_line: int = 4096
