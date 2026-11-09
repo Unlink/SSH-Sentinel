@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="htmx-config" content='{"allowEval":false,"allowScriptTags":false,"selfRequestsOnly":true,"includeIndicatorStyles":false}'>
+  <title>{% block title %}SSH Sentinel{% endblock %}</title>
+  <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/static/app.css">
+  <script src="/static/vendor/htmx.min.js" defer></script>
+  {% block scripts %}{% endblock %}
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/"><span class="brand-icon">S<span>›</span></span><span>SSH <strong>Sentinel</strong><small>HONEYPOT OBSERVATORY</small></span></a>
+    {% if session %}
+    <nav aria-label="Main navigation"><a href="/" {% if page == 'dashboard' %}aria-current="page"{% endif %}>Overview</a><a href="/history" {% if page == 'history' %}aria-current="page"{% endif %}>Events</a></nav>
+    <form action="/logout" method="post" class="logout"><input type="hidden" name="csrf" value="{{ session.csrf }}"><button class="quiet" type="submit">Sign out ↗</button></form>
+    {% else %}<span class="muted">Private dashboard</span>{% endif %}
+  </header>
+  <main>{% block content %}{% endblock %}</main>
+  <footer><span>SSH Sentinel <span class="muted">/ local monitoring</span></span><span>All times in UTC · No cloud services</span></footer>
+</body>
+</html>

@@ -1,0 +1,62 @@
+# Local configuration and secrets; keep the optional configuration example.
+.env
+.env.*
+!.env.example
+
+# Python environments, bytecode, and build output.
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*.egg-info/
+/build/
+/dist/
+
+# Test, coverage, and analysis output.
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.tox/
+.nox/
+.coverage
+.coverage.*
+/htmlcov/
+/coverage.xml
+/junit.xml
+
+# Honeypot data can contain captured passwords. Never commit runtime storage.
+/data/
+/events/
+/keys/
+/backups/
+/backup/
+*.sqlite
+*.sqlite-*
+*.sqlite3
+*.sqlite3-*
+*.db
+*.db-*
+*.jsonl
+*.log
+ssh_host_*_key
+id_rsa
+id_ed25519
+*.key
+*.pem
+
+# Local agent scratch files and generated artifacts.
+.superpowers/
+/artifacts/
+
+# Editor and operating-system files.
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Keep dependency locks, vendored assets, and docs/audit reports versioned.

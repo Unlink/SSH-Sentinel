@@ -1,0 +1,54 @@
+{
+  "sensor-image": {
+    "image_id": "sha256:eb02f16fe861b14dc9aafc57f378b6014e815e6f26ffc6c0836f122f5915fa08",
+    "created_at": "2026-11-07T17:38:32.674887076Z",
+    "results": [
+      {
+        "class": "os-pkgs",
+        "counts": {
+          "LOW": 62,
+          "HIGH": 47,
+          "MEDIUM": 74
+        },
+        "unique_advisories": 83,
+        "fix_available_findings": 0
+      },
+      {
+        "class": "lang-pkgs",
+        "counts": {
+          "HIGH": 1,
+          "MEDIUM": 1,
+          "LOW": 1
+        },
+        "unique_advisories": 3,
+        "fix_available_findings": 3
+      }
+    ]
+  },
+  "web-image": {
+    "image_id": "sha256:22f64e4d45446362c94c25bc88edbf63d6b5feaf676e59da252bcc20cc5c8e3b",
+    "created_at": "2026-11-07T17:38:38.775905607Z",
+    "results": [
+      {
+        "class": "os-pkgs",
+        "counts": {
+          "LOW": 62,
+          "HIGH": 47,
+          "MEDIUM": 74
+        },
+        "unique_advisories": 83,
+        "fix_available_findings": 0
+      },
+      {
+        "class": "lang-pkgs",
+        "counts": {
+          "HIGH": 1,
+          "MEDIUM": 1,
+          "LOW": 1
+        },
+        "unique_advisories": 3,
+        "fix_available_findings": 3
+      }
+    ]
+  }
+}

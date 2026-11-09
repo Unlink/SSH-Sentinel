@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{% block scripts %}<script src="/static/vendor/chart.umd.js" defer></script><script src="/static/dashboard.js" defer></script>{% endblock %}
+{% block content %}
+<div class="page-heading"><div><p class="eyebrow">ACTIVITY OVERVIEW</p><h1>See what your honeypot caught.</h1><p class="muted">Connections, sign-in attempts, and simulated sessions in one place.</p></div><a class="button" href="/history">All events ↗</a></div>
+<div class="toolbar"><span class="status"><span class="dot"></span> Auto-refresh · 10 s</span><div class="segments" aria-label="Time range">{% for value, label in [(1, '24 hours'), (7, '7 days'), (30, '30 days')] %}<a href="/?days={{ value }}" {% if days == value %}aria-current="true"{% endif %}>{{ label }}</a>{% endfor %}</div></div>
+<section id="overview" hx-get="/?days={{ days }}" hx-trigger="every 10s" hx-select="#overview" hx-target="this" hx-swap="outerHTML">
+  <div class="metrics">
+  {% for key, title, description in [('connections','TCP connections','Accepted by the sensor'), ('attempts','Sign-in attempts','Passwords and key probes'), ('unique_ips','Unique IPs','Source addresses'), ('shells','Shell sessions','Simulated environment only')] %}
+  <article class="metric"><span>{{ title }}</span><strong>{{ stats[key] }}</strong><small>{{ description }}</small></article>
+  {% endfor %}
+  </div>
+  <div class="note"><span class="tag">{{ stats.unauthenticated }}</span> closed connections without authentication. A connection alone does not confirm an attack; incomplete SYN scans are not recorded.</div>
+  <div class="rankings">
+  {% for key, title, subtitle in [('top_ips','Most active IPs','By accepted connections'), ('top_users','Usernames','By authentication attempts'), ('top_commands','Top commands','Input to the simulated shell')] %}
+  <article class="panel"><div class="panel-heading"><div><h2>{{ title }}</h2><p class="muted small">{{ subtitle }}</p></div><span class="muted small">TOP 10</span></div>
+  <ol class="ranking">{% for item in stats[key] %}<li><span class="rank">{{ loop.index }}</span><code title="{{ item.label }}">{{ item.label }}</code><strong>{{ item.count }}</strong></li>{% else %}<li class="empty">No events yet.</li>{% endfor %}</ol></article>
+  {% endfor %}
+  </div>
+</section>
+<section class="panel chart-panel"><div class="panel-heading"><div><h2>Activity over time</h2><p class="muted small">Connections and authentication attempts · UTC</p></div><span class="chart-legend"><i></i> Connections <i class="amber"></i> Attempts</span></div><div class="chart-wrap"><canvas id="activity-chart" data-days="{{ days }}" aria-label="SSH activity chart" role="img"></canvas></div><p id="chart-status" class="muted small" aria-live="polite"></p></section>
+{% endblock %}

@@ -1,0 +1,7 @@
+{% extends 'base.html' %}
+{% block content %}
+<section class="auth-card panel"><p class="eyebrow">FIRST RUN</p><h1>Create an account.</h1>
+<p class="muted">Your dashboard is ready. Run this command on the host:</p>
+<pre>docker compose exec web python -m app.web.cli create-admin admin</pre>
+<p>Choose a password with at least 12 characters, then refresh this page.</p><a class="button" href="/login">Refresh →</a></section>
+{% endblock %}

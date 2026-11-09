@@ -1,0 +1,22 @@
+{
+  "actions/checkout": {
+    "version": "v7.0.1",
+    "commit": "3d3c42e5aac5ba805825da76410c181273ba90b1"
+  },
+  "actions/setup-python": {
+    "version": "v7.1.0",
+    "commit": "6d4fd22b20465ccc0f7354476588e8df7c9ca0e0"
+  },
+  "docker/setup-qemu-action": {
+    "version": "v4.4.0",
+    "commit": "99012661954931238ded8c8b007157a8430204e1"
+  },
+  "docker/setup-buildx-action": {
+    "version": "v4.4.1",
+    "commit": "f87e5991a6d7451dcb8d9637bfbc97413f497069"
+  },
+  "docker/build-push-action": {
+    "version": "v7.4.0",
+    "commit": "c3c9e263c25d99ce0380d002d59b67737d91b0dc"
+  }
+}

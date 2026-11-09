@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+{% block title %}Sign in · SSH Sentinel{% endblock %}
+{% block content %}
+<section class="auth-card panel">
+  <p class="eyebrow">OPERATOR ACCESS</p>
+  <h1>Welcome back.</h1>
+  <p class="muted">Sign in to review your honeypot activity.</p>
+  {% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
+  <form action="/login" method="post">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <label>Username<input name="username" autocomplete="username" maxlength="128" required autofocus></label>
+    <label>Password<input name="password" type="password" autocomplete="current-password" maxlength="1024" required></label>
+    <button class="primary" type="submit">Sign in <span>→</span></button>
+  </form>
+  <p class="small muted">Captured data is available only to authorized operators.</p>
+</section>
+{% endblock %}

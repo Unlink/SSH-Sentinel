@@ -1,0 +1,12 @@
+{
+  "browser": "Microsoft Edge headless",
+  "htmx": "2.0.11",
+  "chartjs": "4.6.1",
+  "login": true,
+  "chart_render": true,
+  "htmx_filter": true,
+  "xss_inert": true,
+  "mobile_no_overflow": true,
+  "logout": true,
+  "console_errors": []
+}
