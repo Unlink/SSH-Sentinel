@@ -5,7 +5,7 @@ from uuid import UUID
 
 MAX_EVENT_BYTES = 65536
 KINDS = {'connection', 'handshake', 'auth_attempt', 'shell_start', 'command',
-         'shell_end', 'disconnect', 'limit', 'denied'}
+         'shell_end', 'disconnect', 'limit', 'denied', 'forward_open', 'forward_close'}
 
 
 def utcnow():

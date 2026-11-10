@@ -5,7 +5,7 @@
 <form class="filters panel" action="/history" method="get" hx-get="/history" hx-target="#history-results" hx-push-url="true">
   <label>Source IP<input name="ip" value="{{ selected.ip }}" placeholder="e.g. 192.0.2.1" maxlength="64"></label>
   <label>Username<input name="username" value="{{ selected.username }}" placeholder="All usernames" maxlength="4096"></label>
-  <label>Contains event<select name="kind"><option value="">Any event</option>{% for kind in ['connection','handshake','auth_attempt','shell_start','command','shell_end','disconnect','limit','denied'] %}<option value="{{ kind }}" {% if selected.kind == kind %}selected{% endif %}>{{ kind }}</option>{% endfor %}</select></label>
+  <label>Contains event<select name="kind"><option value="">Any event</option>{% for kind in ['connection','handshake','auth_attempt','shell_start','command','shell_end','disconnect','forward_open','forward_close','limit','denied'] %}<option value="{{ kind }}" {% if selected.kind == kind %}selected{% endif %}>{{ kind }}</option>{% endfor %}</select></label>
   <button class="primary" type="submit">Filter →</button><a class="quiet" href="/history">Clear</a>
 </form>
 <div id="history-results">{% include 'history_table.html' %}</div>

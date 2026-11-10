@@ -103,7 +103,8 @@ class Database:
             WITH grouped AS (
                 SELECT session_id, MIN(ts) first_seen, MAX(ts) last_seen, MIN(ip) ip,
                        COUNT(*) event_count, SUM(kind='auth_attempt') attempts,
-                       SUM(kind='command') commands, MAX(kind='disconnect') closed,
+                       SUM(kind='command') commands, SUM(kind='forward_open') forwardings,
+                       MAX(kind='disconnect') closed,
                        MAX(kind IN ('shell_start','command','shell_end')) shell_opened,
                        MAX((kind='auth_attempt' AND json_extract(data,'$.accepted')=1)
                            OR (kind='disconnect' AND json_extract(data,'$.authenticated')=1)

@@ -150,7 +150,8 @@ def session_detail(request: Request, session_id: UUID, session=Depends(require_s
     if not events:
         raise HTTPException(404, 'Session not found')
     return render(request, 'session.html', session=session, events=list(reversed(events)),
-                  session_id=session_id, page='history')
+                  session_id=session_id, has_forwarding=any(e['kind'] in ('forward_open', 'forward_close') for e in events),
+                  page='history')
 
 
 def csv_cell(value):

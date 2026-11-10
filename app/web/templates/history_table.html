@@ -4,8 +4,8 @@
 <td class="nowrap muted"><time title="First seen: {{ item.first_seen }}">{{ item.last_seen[:19]|replace('T', ' ') }}</time></td>
 <td><code>{{ item.ip }}</code></td>
 <td class="session-user"><code>{{ item.username or '—' }}</code></td>
-<td><span class="event-kind">{% if item.shell_opened %}Shell opened{% elif item.authenticated %}Authenticated{% else %}No authentication{% endif %}</span><span class="session-secondary">{% if item.closed %}Closed{% else %}No disconnect recorded{% endif %}</span></td>
-<td class="session-activity"><span>{{ item.attempts }} auth {{ 'attempt' if item.attempts == 1 else 'attempts' }} · {{ item.commands }} {{ 'command' if item.commands == 1 else 'commands' }}</span><span class="session-secondary">{{ item.event_count }} {{ 'event' if item.event_count == 1 else 'events' }}</span></td>
+<td><span class="event-kind">{% if item.shell_opened %}Shell opened{% elif item.forwardings %}Forwarding simulated{% elif item.authenticated %}Authenticated{% else %}No authentication{% endif %}</span><span class="session-secondary">{% if item.closed %}Closed{% else %}No disconnect recorded{% endif %}</span></td>
+<td class="session-activity"><span>{{ item.attempts }} auth {{ 'attempt' if item.attempts == 1 else 'attempts' }} · {{ item.commands }} {{ 'command' if item.commands == 1 else 'commands' }}</span><span class="session-secondary">{% if item.forwardings %}{{ item.forwardings }} {{ 'tunnel' if item.forwardings == 1 else 'tunnels' }} · {% endif %}{{ item.event_count }} {{ 'event' if item.event_count == 1 else 'events' }}</span></td>
 <td><a href="/sessions/{{ item.session_id }}" class="session-link" aria-label="Session details {{ item.session_id }}">{{ item.session_id[:8] }} ↗</a></td>
 </tr>{% else %}<tr><td colspan="6"><div class="empty-state"><span class="empty-symbol">⌁</span><h3>No sessions match.</h3><p>Try clearing the filters, or wait for a new connection.</p></div></td></tr>{% endfor %}
 </tbody></table></div>

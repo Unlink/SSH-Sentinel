@@ -14,6 +14,7 @@ from app.sensor.authentication import authenticate
 from app.sensor.channel import HoneypotChannel
 from app.sensor.events import EventWriter
 from app.sensor.fake_shell import FakeShell
+from app.sensor.forwarding import VirtualForwarding, MAX_CHANNELS, MAX_CONCURRENT, MAX_REQUESTS
 from app.sensor.transport import BoundedSSHConnection
 from app.sensor.proxy_protocol import ProxyProtocol
 
@@ -127,6 +128,9 @@ class HoneypotServer(asyncssh.SSHServer):
         self.handshake = False
         self.attempts = 0
         self.channels = 0
+        self.forward_channels = 0
+        self.forward_requests = 0
+        self.forward_active = set()
         self.started = time.monotonic()
         self.timer = None
 
@@ -188,9 +192,24 @@ class HoneypotServer(asyncssh.SSHServer):
         self.channels += 1
         return HoneypotChannel(self), HoneypotSession(self)
 
-    def connection_requested(self, *args):
-        self.event('denied', request='forwarding')
-        return False
+    def connection_requested(self, dest_host, dest_port, orig_host, orig_port):
+        self.forward_requests += 1
+        if self.forward_requests > MAX_REQUESTS or self.forward_channels >= MAX_CHANNELS:
+            limit = 'forward_requests' if self.forward_requests > MAX_REQUESTS else 'forward_channels'
+            self.event('limit', limit=limit)
+            self.conn.abort()
+            return False
+        if (not dest_host or len(dest_host) > 1024 or len(orig_host) > 1024
+                or not 1 <= dest_port <= 65535 or not 0 <= orig_port <= 65535):
+            self.event('denied', request='forwarding', reason='invalid_destination')
+            return False
+        if len(self.forward_active) >= MAX_CONCURRENT:
+            self.event('denied', request='forwarding', reason='concurrent_forward_limit')
+            return False
+        # A local protocol handler, never True (which would enable real forwarding).
+        self.forward_channels += 1
+        channel = self.conn.create_tcp_channel(encoding=None, window=8192, max_pktsize=4096)
+        return channel, VirtualForwarding(self, dest_host, dest_port, orig_host, orig_port)
 
     def server_requested(self, *args):
         self.event('denied', request='remote_forwarding')
@@ -203,6 +222,8 @@ class HoneypotServer(asyncssh.SSHServer):
         return False
 
     def connection_lost(self, exc):
+        for forwarding in tuple(self.forward_active):
+            forwarding.finish('disconnect')
         if self.timer:
             self.timer.cancel()
         self.live.discard(self)

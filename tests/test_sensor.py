@@ -28,8 +28,11 @@ async def test_password_capture_exec_and_denied_channels(sensor, tmp_path):
                                 password='hunter2', known_hosts=None) as conn:
         result = await conn.run('whoami')
         assert result.stdout == 'intruder\n'
-        with pytest.raises(asyncssh.ChannelOpenError):
-            await conn.open_connection('127.0.0.1', 8080)
+        reader, writer = await conn.open_connection('127.0.0.1', 8080)
+        writer.write_eof()
+        assert await asyncio.wait_for(reader.read(), 1) == b''
+        writer.close()
+        await writer.wait_closed()
         with pytest.raises(asyncssh.Error):
             await conn.start_sftp_client()
         with pytest.raises(asyncssh.Error):

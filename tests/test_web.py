@@ -228,3 +228,25 @@ def test_history_paginates_sessions_and_preserves_partial_session(web):
     assert row['event_count'] == 1 and row['first_seen'] == row['last_seen']
     page = client.get('/history', params={'session_id':sid}).text
     assert 'No disconnect recorded' in page and 'No authentication' in page
+
+
+def test_virtual_forwarding_is_imported_grouped_and_escaped(web):
+    client, app, settings = web
+    hostile = '<script>forwarding_payload</script>'
+    sid = seed_session_events(app, settings,
+        ['connection','auth_attempt','forward_open','forward_close','disconnect'],
+        username='admin', accepted=True, destination_host='probe.invalid', destination_port=443,
+        simulated=True, sample_text=hostile, sample_base64='c3ludGhldGlj', received_bytes=9)
+    login(client)
+    page = client.get('/history').text
+    assert 'Forwarding simulated' in page and '1 tunnel' in page
+    assert hostile not in page
+    row = app.state.db.session_summaries(session_id=sid)[0]
+    assert row['forwardings'] == 1 and row['event_count'] == 5
+    detail = client.get('/sessions/'+sid).text
+    assert 'No connection to the requested destination was made.' in detail
+    assert hostile not in detail and '&lt;script&gt;forwarding_payload&lt;/script&gt;' in detail
+    assert 'probe.invalid:443' in detail
+    assert sid in client.get('/history',params={'kind':'forward_open'}).text
+    exported = client.get('/export.json',params={'session_id':sid}).json()
+    assert len(exported) == 5 and any(e['kind']=='forward_close' for e in exported)
