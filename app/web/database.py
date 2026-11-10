@@ -89,6 +89,38 @@ class Database:
                                 [*params, min(max(limit, 1), 1000), max(0, offset)]).fetchall()
         return [self.decode(row) for row in rows]
 
+    def session_summaries(self, *, ip='', username='', kind='', session_id='', limit=50, offset=0):
+        """Filter whole SSH sessions, then paginate; retain all their event counts."""
+        having, params = [], []
+        for expression, value in [('ip', ip), ("json_extract(data, '$.username')", username), ('kind', kind)]:
+            if value:
+                having.append(f'MAX({expression} = ?) = 1')
+                params.append(value)
+        where = ' WHERE session_id = ?' if session_id else ''
+        values = ([session_id] if session_id else []) + params
+        match = ' HAVING ' + ' AND '.join(having) if having else ''
+        query = """
+            WITH grouped AS (
+                SELECT session_id, MIN(ts) first_seen, MAX(ts) last_seen, MIN(ip) ip,
+                       COUNT(*) event_count, SUM(kind='auth_attempt') attempts,
+                       SUM(kind='command') commands, MAX(kind='disconnect') closed,
+                       MAX(kind IN ('shell_start','command','shell_end')) shell_opened,
+                       MAX((kind='auth_attempt' AND json_extract(data,'$.accepted')=1)
+                           OR (kind='disconnect' AND json_extract(data,'$.authenticated')=1)
+                           OR kind IN ('shell_start','command','shell_end')) authenticated
+                FROM events""" + where + " GROUP BY session_id" + match + """
+                ORDER BY last_seen DESC, session_id DESC LIMIT ? OFFSET ?
+            )
+            SELECT grouped.*, (SELECT json_extract(u.data,'$.username') FROM events u
+                WHERE u.session_id=grouped.session_id AND json_type(u.data,'$.username')='text'
+                AND json_extract(u.data,'$.username') != ''
+                ORDER BY u.ts DESC, u.id DESC LIMIT 1) username
+            FROM grouped ORDER BY last_seen DESC, session_id DESC
+        """
+        with self.connect() as conn:
+            rows = conn.execute(query, [*values, min(max(limit, 1), 1000), max(0, offset)]).fetchall()
+        return [dict(row) for row in rows]
+
     def export(self, **filters):
         where, params = self.filters(**filters)
         # Release each read transaction before yielding to a possibly slow HTTP client.

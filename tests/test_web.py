@@ -47,7 +47,7 @@ def test_dashboard_and_login_errors_are_english(web):
     assert 'Invalid username or password.' in failed.text
     assert login(client).status_code == 303
     assert 'See what your honeypot caught.' in client.get('/').text
-    assert 'Event history' in client.get('/history').text
+    assert 'Session history' in client.get('/history').text
 
 
 def test_setup_login_protected_views_and_csrf(web):
@@ -157,3 +157,74 @@ def test_password_reset_cannot_race_session_creation(tmp_path, monkeypatch):
     assert reset_done.is_set()
     assert status == 'ok'
     assert current_session(db, token) is None
+
+
+def seed_session_events(app, settings, kinds, session_id=None, **data):
+    from uuid import uuid4
+    from datetime import datetime, timedelta, timezone
+    session_id = session_id or str(uuid4())
+    start = datetime.now(timezone.utc) - timedelta(minutes=1)
+    rows = []
+    for index, kind in enumerate(kinds):
+        row = event(kind, **data)
+        row['session_id'] = session_id
+        row['ts'] = (start + timedelta(seconds=index)).isoformat(timespec='milliseconds')
+        rows.append(row)
+    with (settings.event_dir/'session-overview.jsonl').open('a') as stream:
+        stream.writelines(json.dumps(row)+'\n' for row in rows)
+    Importer(app.state.db, settings.event_dir).run()
+    return session_id
+
+
+def test_history_groups_entire_sessions_and_hides_event_payloads(web):
+    client, app, settings = web
+    sid = seed_session_events(app, settings,
+        ['connection','auth_attempt','shell_start','command','command','disconnect'],
+        username='root', password='secret-not-in-overview', command='payload-not-in-overview', accepted=True)
+    login(client)
+    page = client.get('/history').text
+    assert page.count(f'href="/sessions/{sid}"') == 1
+    assert 'Session history' in page
+    assert 'secret-not-in-overview' not in page and 'payload-not-in-overview' not in page
+    assert 'Shell opened' in page and 'Closed' in page
+    row = app.state.db.session_summaries()[0]
+    assert row['event_count'] == 6 and row['attempts'] == 1 and row['commands'] == 2
+    assert len(client.get('/api/events').json()) == 6
+    assert 'secret-not-in-overview' in client.get('/sessions/'+sid).text
+    assert len(client.get('/export.json').json()) == 6
+
+
+def test_history_filters_match_across_events_and_keep_full_counts(web):
+    client, app, settings = web
+    from uuid import uuid4
+    sid = str(uuid4())
+    seed_session_events(app, settings, ['connection'], sid)
+    seed_session_events(app, settings, ['auth_attempt'], sid, username='root', accepted=False)
+    seed_session_events(app, settings, ['command'], sid, command='whoami')
+    seed_session_events(app, settings, ['connection','disconnect'])
+    login(client)
+    page = client.get('/history', params={'username':'root','kind':'connection'}).text
+    assert page.count(f'href="/sessions/{sid}"') == 1
+    rows = app.state.db.session_summaries(username='root', kind='connection')
+    assert len(rows) == 1 and rows[0]['event_count'] == 3 and rows[0]['commands'] == 1
+    assert client.get('/history', params={'ip':'192.0.2.99'}).text.count('No sessions match') == 1
+    partial = client.get('/history', params={'username':'root'}, headers={'HX-Request':'true'}).text
+    assert '<html' not in partial and f'href="/sessions/{sid}"' in partial
+
+
+def test_history_paginates_sessions_and_preserves_partial_session(web):
+    client, app, settings = web
+    for _ in range(51):
+        seed_session_events(app, settings, ['connection','disconnect'])
+    sid = seed_session_events(app, settings, ['auth_attempt'], username='partial-user', accepted=False)
+    login(client)
+    first, second = client.get('/history').text, client.get('/history?page=2').text
+    ids_first = re.findall(r'href="/sessions/([^"?]+)"', first)
+    ids_second = re.findall(r'href="/sessions/([^"?]+)"', second)
+    assert len(ids_first) == 50 and len(ids_second) == 2
+    assert not set(ids_first) & set(ids_second)
+    assert 'Next' in first and 'Next' not in second
+    row = app.state.db.session_summaries(session_id=sid)[0]
+    assert row['event_count'] == 1 and row['first_seen'] == row['last_seen']
+    page = client.get('/history', params={'session_id':sid}).text
+    assert 'No disconnect recorded' in page and 'No authentication' in page

@@ -132,8 +132,8 @@ def filters(request):
 def history(request: Request, page: int = 1, session=Depends(require_session)):
     page = max(1, min(page, 10000))
     selected = filters(request)
-    events = request.app.state.db.events(**selected, limit=51, offset=(page - 1) * 50)
-    context = dict(session=session, events=events[:50], has_next=len(events) > 50,
+    sessions = request.app.state.db.session_summaries(**selected, limit=51, offset=(page - 1) * 50)
+    context = dict(session=session, sessions=sessions[:50], has_next=len(sessions) > 50,
                    selected=selected, number=page, page='history')
     partial = request.headers.get('HX-Request') == 'true'
     return render(request, 'history_table.html' if partial else 'history.html', **context)

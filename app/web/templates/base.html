@@ -14,7 +14,7 @@
   <header class="topbar">
     <a class="brand" href="/"><span class="brand-icon">S<span>›</span></span><span>SSH <strong>Sentinel</strong><small>HONEYPOT OBSERVATORY</small></span></a>
     {% if session %}
-    <nav aria-label="Main navigation"><a href="/" {% if page == 'dashboard' %}aria-current="page"{% endif %}>Overview</a><a href="/history" {% if page == 'history' %}aria-current="page"{% endif %}>Events</a></nav>
+    <nav aria-label="Main navigation"><a href="/" {% if page == 'dashboard' %}aria-current="page"{% endif %}>Overview</a><a href="/history" {% if page == 'history' %}aria-current="page"{% endif %}>Sessions</a></nav>
     <form action="/logout" method="post" class="logout"><input type="hidden" name="csrf" value="{{ session.csrf }}"><button class="quiet" type="submit">Sign out ↗</button></form>
     {% else %}<span class="muted">Private dashboard</span>{% endif %}
   </header>

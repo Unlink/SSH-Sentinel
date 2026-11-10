@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% block scripts %}<script src="/static/vendor/chart.umd.js" defer></script><script src="/static/dashboard.js" defer></script>{% endblock %}
 {% block content %}
-<div class="page-heading"><div><p class="eyebrow">ACTIVITY OVERVIEW</p><h1>See what your honeypot caught.</h1><p class="muted">Connections, sign-in attempts, and simulated sessions in one place.</p></div><a class="button" href="/history">All events ↗</a></div>
+<div class="page-heading"><div><p class="eyebrow">ACTIVITY OVERVIEW</p><h1>See what your honeypot caught.</h1><p class="muted">Connections, sign-in attempts, and simulated sessions in one place.</p></div><a class="button" href="/history">All sessions ↗</a></div>
 <div class="toolbar"><span class="status"><span class="dot"></span> Auto-refresh · 10 s</span><div class="segments" aria-label="Time range">{% for value, label in [(1, '24 hours'), (7, '7 days'), (30, '30 days')] %}<a href="/?days={{ value }}" {% if days == value %}aria-current="true"{% endif %}>{{ label }}</a>{% endfor %}</div></div>
 <section id="overview" hx-get="/?days={{ days }}" hx-trigger="every 10s" hx-select="#overview" hx-target="this" hx-swap="outerHTML">
   <div class="metrics">

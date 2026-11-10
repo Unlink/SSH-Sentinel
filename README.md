@@ -50,8 +50,8 @@ For an explicit public TCP 2222 deployment on Windows/Docker Desktop, follow [th
 
 - Counts of TCP connections, password attempts, unique IPs, and simulated shells.
 - Separate count of connections closed without login; time ranges of 24 hours, 7 days, and 30 days.
-- Top IPs, usernames, and commands; paginated history with exact IP, username, and event-type filters.
-- Chronological session details, including captured passwords, limits, and disconnection.
+- Top IPs, usernames, and commands; paginated session history with one row per SSH connection, outcome and activity counts. IP, username and event-type filters select whole sessions, even when matching values occur in different events.
+- Open a session for its chronological events, including captured passwords, commands, limits, and disconnection. Counts cover retained events; a missing disconnect is shown explicitly. Raw event APIs and JSON/CSV exports remain available.
 - JSON/CSV exports respect the selected filters, require authentication, and stream data. CSV neutralizes inputs that could be interpreted as formulas.
 - All frontend libraries are local in `static/vendor`, with no CDN, third-party fonts, or telemetry.
 
