@@ -250,3 +250,25 @@ def test_virtual_forwarding_is_imported_grouped_and_escaped(web):
     assert sid in client.get('/history',params={'kind':'forward_open'}).text
     exported = client.get('/export.json',params={'session_id':sid}).json()
     assert len(exported) == 5 and any(e['kind']=='forward_close' for e in exported)
+
+
+def test_geoip_flags_and_asn_on_all_ip_views_without_changing_export(web):
+    from types import SimpleNamespace
+    client,app,settings=web
+    sid=seed_session_events(app,settings,['connection','auth_attempt','disconnect'],username='admin',accepted=True)
+    info={'country_code':'SK','country_name':'Slovakia','asn':64500,
+          'asn_name':'<script>ASN operator</script>','status':'found'}
+    app.state.geoip=SimpleNamespace(lookup=lambda ip:info,release='2026-11',available=True)
+    login(client)
+    for url in ('/','/history','/sessions/'+sid):
+        page=client.get(url).text
+        assert '/static/flags/sk.svg' in page
+        assert 'Slovakia' in page and 'AS64500' in page
+        assert '<script>ASN operator</script>' not in page
+        assert '&lt;script&gt;ASN operator&lt;/script&gt;' in page
+        assert 'https://db-ip.com' in page
+    partial=client.get('/history',headers={'HX-Request':'true'}).text
+    assert '/static/flags/sk.svg' in partial and 'AS64500' in partial
+    exported=client.get('/export.json',params={'session_id':sid}).json()
+    assert all(set(e)=={'v','id','ts','kind','session_id','ip','data'} for e in exported)
+    assert all('country_code' not in e['data'] for e in exported)

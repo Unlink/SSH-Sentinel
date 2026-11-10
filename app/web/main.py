@@ -15,6 +15,7 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 from app.common.config import Settings
 from app.web.database import Database
 from app.web.ingestion import Importer
+from app.web.geoip import GeoIP
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -48,6 +49,7 @@ def create_app(settings=None):
 
     app = FastAPI(title='SSH Sentinel', docs_url=None, redoc_url=None, openapi_url=None, lifespan=lifespan)
     app.state.db, app.state.settings = db, settings
+    app.state.geoip = GeoIP(settings.geoip_path)
     app.state.import_ok, app.state.last_import = True, time.monotonic()
     app.state.login_slots = asyncio.Semaphore(2)
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.allowed_hosts.split(','))

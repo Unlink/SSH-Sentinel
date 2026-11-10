@@ -1,3 +1,9 @@
+FROM python:3.15.2-slim-trixie@sha256:e97b88e416c3c01eb427b21fd8cd3ebf006e6ee38afcfcc3cae1c54ee2ab0a75 AS geoip-data
+WORKDIR /build
+COPY geoip-sources.json ./
+COPY scripts/build_geoip.py ./
+RUN python build_geoip.py --output /geoip.sqlite
+
 FROM python:3.15.2-slim-trixie@sha256:e97b88e416c3c01eb427b21fd8cd3ebf006e6ee38afcfcc3cae1c54ee2ab0a75
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PIP_DISABLE_PIP_VERSION_CHECK=1
 WORKDIR /opt/sentinel
@@ -14,6 +20,7 @@ COPY app/__init__.py app/__init__.py
 COPY app/common app/common
 COPY app/web app/web
 COPY static static
+COPY --from=geoip-data --chmod=0444 /geoip.sqlite /opt/sentinel/geoip.sqlite
 USER 10001:10001
 EXPOSE 8080
 CMD ["python", "-m", "uvicorn", "app.web.main:create_app", "--factory", "--host", "0.0.0.0", "--port", "8080", "--workers", "1", "--no-proxy-headers", "--no-access-log", "--limit-concurrency", "32", "--timeout-keep-alive", "5"]

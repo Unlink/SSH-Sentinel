@@ -9,6 +9,7 @@ class Settings:
     event_dir: Path = Path('/events')
     data_dir: Path = Path('/data')
     key_dir: Path = Path('/keys')
+    geoip_path: Path = Path(__file__).resolve().parents[2] / 'geoip.sqlite'
     ssh_host: str = '0.0.0.0'
     ssh_port: int = 2222
     proxy_protocol: bool = False
@@ -30,7 +31,7 @@ class Settings:
     max_spool_files: int = 4096
 
     def __post_init__(self):
-        for name in ('event_dir', 'data_dir', 'key_dir'):
+        for name in ('event_dir', 'data_dir', 'key_dir', 'geoip_path'):
             object.__setattr__(self, name, Path(getattr(self, name)))
         limits = {'ssh_port': (0, 65535), 'max_connections': (1, 1024),
                   'max_line': (64, 4096), 'max_commands': (1, 10000),

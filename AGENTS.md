@@ -42,6 +42,9 @@
   importer, session summaries, detail views, filters, and exports.
 - Keep the sensor non-root, read-only, without capabilities or a Docker socket.
   Preserve isolated networks, bounded storage, and dashboard read-only spool access.
+- GeoIP/ASN enrichment stays offline in the dashboard, using the bundled read-only
+  asset. Never send observed IPs to external lookup APIs or add GeoIP to the sensor.
+  Keep source snapshots SHA-pinned and preserve data/flag license attribution.
 - History lists one row per SSH session. Filter and paginate whole sessions;
   keep event payloads in the session detail, not in the overview.
 

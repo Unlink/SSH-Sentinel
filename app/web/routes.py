@@ -30,6 +30,7 @@ def require_session(request: Request):
 
 
 def render(request, name, **context):
+    context['geoip'] = request.app.state.geoip
     return templates.TemplateResponse(request=request, name=name, context=context)
 
 

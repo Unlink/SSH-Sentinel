@@ -1,0 +1,16 @@
+{
+  "provider": "DB-IP Lite",
+  "release": "2026-11",
+  "license": "CC-BY-4.0",
+  "attribution_url": "https://db-ip.com",
+  "files": {
+    "country": {
+      "url": "https://download.db-ip.com/free/dbip-country-lite-2026-11.csv.gz",
+      "sha256": "e5c8459d638a272ece7f4d7cfa49dce18d91b4f403f6940ba9249bf0db3781fd"
+    },
+    "asn": {
+      "url": "https://download.db-ip.com/free/dbip-asn-lite-2026-11.csv.gz",
+      "sha256": "0ea3ba480ed39127fb2ff6bcbea44db14bc978f387efedc28f0411c054c4b1e4"
+    }
+  }
+}

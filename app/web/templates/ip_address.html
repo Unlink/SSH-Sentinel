@@ -1,0 +1,6 @@
+{% macro ip_address(ip, info) -%}
+<span class="ip-identity">
+  <span class="ip-address">{% if info.country_code %}<img class="country-flag" src="/static/flags/{{ info.country_code|lower }}.svg" alt="{{ info.country_code }}" title="{{ info.country_name }} · approximate GeoIP" width="20" height="15">{% endif %}<code>{{ ip }}</code></span>
+  <span class="ip-network">{% if info.status == 'non_public' %}Local / reserved{% elif info.status == 'unavailable' %}GeoIP unavailable{% else %}{{ info.country_name or 'Country unknown' }}{% if info.asn %} · <span class="asn-number">AS{{ info.asn }}</span>{% if info.asn_name %}<span class="asn-organization" title="{{ info.asn_name }}">{{ info.asn_name }}</span>{% endif %}{% else %} · ASN unknown{% endif %}{% endif %}</span>
+</span>
+{%- endmacro %}

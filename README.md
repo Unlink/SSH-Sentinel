@@ -55,6 +55,22 @@ For an explicit public TCP 2222 deployment on Windows/Docker Desktop, follow [th
 - JSON/CSV exports respect the selected filters, require authentication, and stream data. CSV neutralizes inputs that could be interpreted as formulas.
 - All frontend libraries are local in `static/vendor`, with no CDN, third-party fonts, or telemetry.
 
+## Country flags and ASN
+
+The dashboard enriches source IPs locally with country flags, country names, AS numbers and network organizations in the top-IP ranking, session history and session detail. Both IPv4 and IPv6 are supported. Existing events are enriched when viewed; their stored IPs and raw JSON/CSV exports remain unchanged.
+
+Published web images include DB-IP Lite country/ASN snapshots and local flag-icons SVGs. No API key, `.env`, extra container or runtime GeoIP request is needed. Private/reserved addresses are labelled **Local / reserved**; unknown country and ASN values are shown independently. Approximate GeoIP identifies an IP/network location, not a person's identity or physical location; VPNs, hosting networks and database errors affect accuracy.
+
+The footer shows the snapshot month and credits [DB-IP](https://db-ip.com). Country and ASN data use [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/); flag-icons assets are MIT-licensed with their license and SHA512-verified manifest in `static/flags/`. Builds download only the public bulk datasets, never captured IP addresses. There is no automatic runtime download. To receive refreshed data, pull a web image built with a newer snapshot and recreate only the web service.
+
+For local development without the compiled snapshot, the application stays usable and displays **GeoIP unavailable**. Build the asset explicitly if needed:
+
+```bash
+python scripts/build_geoip.py --output geoip.sqlite
+```
+
+Maintainers update `geoip-sources.json` with the release, official download URLs and independently checked SHA256 values before rebuilding the web image. The builder rejects checksum mismatches, oversized input, invalid or overlapping ranges. Refresh the pinned local flags using `python scripts/update_flags.py`. Generated databases and source archives are not committed. Advanced deployments may set `SENTINEL_GEOIP_PATH` to a read-only compiled snapshot; the default is the web image's `/opt/sentinel/geoip.sqlite`.
+
 ## Configuration
 
 No configuration file is required. Override defaults with shell environment variables (the examples below use Bash), an optional `.env` file based on `.env.example`, or an optional Compose override file. Recreate the affected containers to apply changes, for example:

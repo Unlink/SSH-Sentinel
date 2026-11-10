@@ -19,6 +19,6 @@
     {% else %}<span class="muted">Private dashboard</span>{% endif %}
   </header>
   <main>{% block content %}{% endblock %}</main>
-  <footer><span>SSH Sentinel <span class="muted">/ local monitoring</span></span><span>All times in UTC · No cloud services</span></footer>
+  <footer><span>SSH Sentinel <span class="muted">/ local monitoring</span></span><span>All times in UTC · Local IP lookups{% if session %}<span class="geoip-attribution"><a href="https://db-ip.com" rel="noreferrer">IP Geolocation by DB-IP</a>{% if geoip.release %} · {{ geoip.release }}{% else %} · data unavailable{% endif %} · approximate location</span>{% endif %}</span></footer>
 </body>
 </html>

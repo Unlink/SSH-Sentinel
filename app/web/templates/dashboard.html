@@ -1,3 +1,4 @@
+{% from 'ip_address.html' import ip_address %}
 {% extends 'base.html' %}
 {% block scripts %}<script src="/static/vendor/chart.umd.js" defer></script><script src="/static/dashboard.js" defer></script>{% endblock %}
 {% block content %}
@@ -13,7 +14,7 @@
   <div class="rankings">
   {% for key, title, subtitle in [('top_ips','Most active IPs','By accepted connections'), ('top_users','Usernames','By authentication attempts'), ('top_commands','Top commands','Input to the simulated shell')] %}
   <article class="panel"><div class="panel-heading"><div><h2>{{ title }}</h2><p class="muted small">{{ subtitle }}</p></div><span class="muted small">TOP 10</span></div>
-  <ol class="ranking">{% for item in stats[key] %}<li><span class="rank">{{ loop.index }}</span><code title="{{ item.label }}">{{ item.label }}</code><strong>{{ item.count }}</strong></li>{% else %}<li class="empty">No events yet.</li>{% endfor %}</ol></article>
+  <ol class="ranking">{% for item in stats[key] %}<li><span class="rank">{{ loop.index }}</span>{% if key == 'top_ips' %}{{ ip_address(item.label, geoip.lookup(item.label)) }}{% else %}<code title="{{ item.label }}">{{ item.label }}</code>{% endif %}<strong>{{ item.count }}</strong></li>{% else %}<li class="empty">No events yet.</li>{% endfor %}</ol></article>
   {% endfor %}
   </div>
 </section>

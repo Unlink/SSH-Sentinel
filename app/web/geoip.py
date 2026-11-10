@@ -1,0 +1,72 @@
+"""Read-only local IP enrichment. No DNS, downloads or external lookup requests."""
+from contextlib import closing
+from functools import lru_cache
+import ipaddress
+import json
+from pathlib import Path
+import sqlite3
+
+ROOT = Path(__file__).resolve().parents[2]
+
+
+class GeoIP:
+    def __init__(self, path):
+        self.path = Path(path)
+        self.release = None
+        self.available = False
+        self.countries = json.loads((ROOT / 'static/flags/countries.json').read_text(encoding='utf-8'))
+        try:
+            with closing(self.connect()) as conn:
+                if conn.execute('PRAGMA user_version').fetchone()[0] != 1:
+                    raise ValueError('Unsupported GeoIP format')
+                conn.execute('SELECT version,start,end,country_code FROM country LIMIT 0')
+                conn.execute('SELECT version,start,end,asn,asn_name FROM asn LIMIT 0')
+                row = conn.execute("SELECT value FROM metadata WHERE key='release'").fetchone()
+                self.release = row[0] if row else None
+                self.available = bool(self.release)
+        except (OSError, sqlite3.Error, ValueError):
+            pass
+        self.lookup = lru_cache(maxsize=4096)(self._lookup)
+
+    def connect(self):
+        conn = sqlite3.connect(self.path.resolve().as_uri() + '?mode=ro&immutable=1', uri=True)
+        try:
+            conn.row_factory = sqlite3.Row
+            conn.execute('PRAGMA cache_size=-2048')
+            return conn
+        except sqlite3.Error:
+            conn.close()
+            raise
+
+    def _lookup(self, value):
+        result = {'country_code': None, 'country_name': None, 'asn': None,
+                  'asn_name': None, 'status': 'unknown'}
+        try:
+            address = ipaddress.ip_address(value)
+        except ValueError:
+            return dict(result, status='invalid')
+        if isinstance(address, ipaddress.IPv6Address) and address.ipv4_mapped:
+            address = address.ipv4_mapped
+        if (not address.is_global or address.is_multicast or address.is_reserved
+                or (isinstance(address, ipaddress.IPv6Address) and address.is_site_local)):
+            return dict(result, status='non_public')
+        if not self.available:
+            return dict(result, status='unavailable')
+        try:
+            with closing(self.connect()) as conn:
+                for kind in ('country', 'asn'):
+                    row = conn.execute(f'SELECT * FROM {kind} WHERE version=? AND start<=? '
+                                       'ORDER BY start DESC LIMIT 1', (address.version, address.packed)).fetchone()
+                    if not row or address.packed > row['end']:
+                        continue
+                    if kind == 'country' and row['country_code'] in self.countries:
+                        result['country_code'] = row['country_code']
+                        result['country_name'] = self.countries[row['country_code']]
+                    elif kind == 'asn' and isinstance(row['asn'], int) and 0 < row['asn'] <= 4294967295:
+                        result['asn'] = row['asn']
+                        result['asn_name'] = str(row['asn_name'])[:256]
+        except (OSError, sqlite3.Error, TypeError):
+            return dict(result, status='unavailable')
+        if result['country_code'] or result['asn']:
+            result['status'] = 'found'
+        return result
