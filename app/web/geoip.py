@@ -1,4 +1,5 @@
 """Read-only local IP enrichment. No DNS, downloads or external lookup requests."""
+from collections import Counter
 from contextlib import closing
 from functools import lru_cache
 import ipaddress
@@ -38,17 +39,48 @@ class GeoIP:
             conn.close()
             raise
 
-    def _lookup(self, value):
-        result = {'country_code': None, 'country_name': None, 'asn': None,
-                  'asn_name': None, 'status': 'unknown'}
-        try:
-            address = ipaddress.ip_address(value)
-        except ValueError:
-            return dict(result, status='invalid')
+    @staticmethod
+    def public_address(value):
+        address = ipaddress.ip_address(value)
         if isinstance(address, ipaddress.IPv6Address) and address.ipv4_mapped:
             address = address.ipv4_mapped
         if (not address.is_global or address.is_multicast or address.is_reserved
                 or (isinstance(address, ipaddress.IPv6Address) and address.is_site_local)):
+            return None
+        return address
+
+    def country_totals(self, weighted_ips):
+        """One country-only connection for the complete bounded event population."""
+        total = sum(row['count'] for row in weighted_ips)
+        unknown = {'countries': [], 'total_connections': total, 'unknown_connections': total}
+        if not self.available or not weighted_ips:
+            return unknown
+        counts = Counter()
+        try:
+            with closing(self.connect()) as conn:
+                for item in weighted_ips:
+                    address = self.public_address(item['ip'])
+                    if address is None:
+                        continue
+                    row = conn.execute('SELECT end,country_code FROM country WHERE version=? AND start<=? '
+                                       'ORDER BY start DESC LIMIT 1', (address.version, address.packed)).fetchone()
+                    if row and address.packed <= row['end'] and row['country_code'] in self.countries:
+                        counts[row['country_code']] += item['count']
+        except (OSError, sqlite3.Error, ValueError, TypeError):
+            return unknown
+        countries = [{'code': code, 'name': self.countries[code], 'count': count}
+                     for code, count in sorted(counts.items(), key=lambda row: (-row[1], row[0]))]
+        return {'countries': countries, 'total_connections': total,
+                'unknown_connections': total-sum(counts.values())}
+
+    def _lookup(self, value):
+        result = {'country_code': None, 'country_name': None, 'asn': None,
+                  'asn_name': None, 'status': 'unknown'}
+        try:
+            address = self.public_address(value)
+        except ValueError:
+            return dict(result, status='invalid')
+        if address is None:
             return dict(result, status='non_public')
         if not self.available:
             return dict(result, status='unavailable')

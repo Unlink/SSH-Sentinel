@@ -5,3 +5,6 @@
 *.yml text eol=lf
 *.yaml text eol=lf
 Dockerfile* text eol=lf
+
+# Preserve checksum-pinned map assets across Windows checkouts.
+/static/map/* text eol=lf

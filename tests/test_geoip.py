@@ -106,3 +106,27 @@ def test_malformed_database_schema_degrades_without_raising(tmp_path):
         conn.commit()
     geo=GeoIP(path)
     assert geo.lookup('1.1.1.1')['status']=='unavailable'
+
+
+def test_bulk_country_counts_use_one_connection_and_keep_unknowns(tmp_path,monkeypatch):
+    from app.web.geoip import GeoIP
+    geo=GeoIP(make_dataset(tmp_path))
+    original=geo.connect
+    calls=[]
+    def connect():
+        calls.append(True)
+        return original()
+    monkeypatch.setattr(geo,'connect',connect)
+    result=geo.country_totals([
+        {'ip':'1.1.1.1','count':3},{'ip':'8.8.8.8','count':5},
+        {'ip':'1.1.2.1','count':2},{'ip':'172.30.222.1','count':7},
+        {'ip':'2606:4700:4700::1111','count':1},{'ip':'::ffff:1.1.1.1','count':1}])
+    assert len(calls)==1
+    assert {r['code']:r['count'] for r in result['countries']}=={'AU':4,'US':6}
+    assert result['unknown_connections']==9 and result['total_connections']==19
+
+
+def test_bulk_country_counts_without_database_are_all_unknown(tmp_path):
+    from app.web.geoip import GeoIP
+    result=GeoIP(tmp_path/'missing.sqlite').country_totals([{'ip':'1.1.1.1','count':5}])
+    assert result['countries']==[] and result['unknown_connections']==5

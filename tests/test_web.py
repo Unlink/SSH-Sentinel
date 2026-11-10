@@ -258,7 +258,9 @@ def test_geoip_flags_and_asn_on_all_ip_views_without_changing_export(web):
     sid=seed_session_events(app,settings,['connection','auth_attempt','disconnect'],username='admin',accepted=True)
     info={'country_code':'SK','country_name':'Slovakia','asn':64500,
           'asn_name':'<script>ASN operator</script>','status':'found'}
-    app.state.geoip=SimpleNamespace(lookup=lambda ip:info,release='2026-11',available=True)
+    app.state.geoip=SimpleNamespace(lookup=lambda ip:info,release='2026-11',available=True,
+        country_totals=lambda rows:{'countries':[], 'total_connections':sum(r['count'] for r in rows),
+            'unknown_connections':sum(r['count'] for r in rows)})
     login(client)
     for url in ('/','/history','/sessions/'+sid):
         page=client.get(url).text
@@ -272,3 +274,34 @@ def test_geoip_flags_and_asn_on_all_ip_views_without_changing_export(web):
     exported=client.get('/export.json',params={'session_id':sid}).json()
     assert all(set(e)=={'v','id','ts','kind','session_id','ip','data'} for e in exported)
     assert all('country_code' not in e['data'] for e in exported)
+
+
+def test_world_map_renders_and_refreshes_with_no_external_resources(web):
+    from types import SimpleNamespace
+    client,app,settings=web
+    seed_session_events(app,settings,['connection','auth_attempt','disconnect'],username='root',accepted=True)
+    info={'country_code':'SK','country_name':'Slovakia','asn':64500,'asn_name':'Test network','status':'found'}
+    app.state.geoip=SimpleNamespace(lookup=lambda ip:info,release='2026-11',available=True,
+        country_totals=lambda rows:{'countries':[{'code':'SK','name':'Slovakia','count':sum(r['count'] for r in rows)}],
+            'unknown_connections':0,'total_connections':sum(r['count'] for r in rows)})
+    login(client)
+    page=client.get('/?days=7').text
+    assert 'id="country-map"' in page and '<svg' in page
+    assert 'Country activity' in page and 'Slovakia: 1 connection' in page
+    assert 'naturalearthdata.com' in page and 'Approximate GeoIP' in page
+    assert 'hx-get="/?days=7"' in page
+    overview=page.split('id="overview"',1)[1].split('id="activity-chart"',1)[0]
+    assert 'id="country-map"' in overview
+    assert 'tile.openstreetmap.org' not in page and 'maps.googleapis.com' not in page
+    partial=client.get('/?days=7',headers={'HX-Request':'true'}).text
+    assert 'Slovakia: 1 connection' in partial
+
+
+def test_world_map_handles_empty_and_unavailable_geoip(web):
+    client,app,settings=web
+    login(client)
+    assert 'No connections in this time range.' in client.get('/').text
+    seed_session_events(app,settings,['connection','disconnect'])
+    page=client.get('/').text
+    assert 'No country could be determined.' in page
+    assert 'Unknown / local: 1' in page

@@ -2,7 +2,7 @@
 from datetime import datetime, timedelta, timezone
 
 
-def summary(db, days=1):
+def summary(db, days=1, *, geoip=None):
     days = days if days in (1, 7, 30) else 1
     now = datetime.now(timezone.utc)
     hourly = days == 1
@@ -21,6 +21,9 @@ def summary(db, days=1):
                 ('top_users', "json_extract(data, '$.username')", 'auth_attempt'),
                 ('top_commands', "json_extract(data, '$.command')", 'command')]:
             result[key] = [dict(r) for r in conn.execute(f'SELECT {expression} label, count(*) count FROM events WHERE ts>=? AND kind=? GROUP BY label ORDER BY count DESC, label LIMIT 10', (since, kind))]
+        if geoip is not None:
+            weighted_ips = [dict(row) for row in conn.execute(
+                "SELECT ip,count(*) count FROM events WHERE ts>=? AND kind='connection' GROUP BY ip", (since,))]
         width = 13 if hourly else 10
         rows = conn.execute('SELECT substr(ts,1,?) bucket, kind, count(*) n FROM events WHERE ts>=? AND kind IN (\'connection\',\'auth_attempt\') GROUP BY bucket, kind', (width, since))
         counts = {(r['bucket'], r['kind']): r['n'] for r in rows}
@@ -29,4 +32,6 @@ def summary(db, days=1):
             stamp = (start + i * step).isoformat()[:width]
             result['activity'].append({'time': stamp, 'connections': counts.get((stamp, 'connection'), 0),
                                        'attempts': counts.get((stamp, 'auth_attempt'), 0)})
+    if geoip is not None:
+        result['origins'] = geoip.country_totals(weighted_ips)
     return result

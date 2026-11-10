@@ -16,6 +16,7 @@ from fastapi.responses import HTMLResponse, PlainTextResponse, RedirectResponse,
 from fastapi.templating import Jinja2Templates
 
 from app.web.analytics import summary
+from app.web.world_map import map_view
 from app.web.auth import attempt_login, current_session
 
 router = APIRouter()
@@ -110,8 +111,9 @@ async def logout(request: Request, session=Depends(require_session)):
 @router.get('/', response_class=HTMLResponse)
 def dashboard(request: Request, days: int = 1, session=Depends(require_session)):
     days = days if days in (1, 7, 30) else 1
+    stats = summary(request.app.state.db, days, geoip=request.app.state.geoip)
     return render(request, 'dashboard.html', session=session, days=days,
-                  stats=summary(request.app.state.db, days), page='dashboard')
+                  stats=stats, country_map=map_view(stats['origins']), page='dashboard')
 
 
 @router.get('/api/stats')

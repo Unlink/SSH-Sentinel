@@ -71,6 +71,14 @@ python scripts/build_geoip.py --output geoip.sqlite
 
 Maintainers update `geoip-sources.json` with the release, official download URLs and independently checked SHA256 values before rebuilding the web image. The builder rejects checksum mismatches, oversized input, invalid or overlapping ranges. Refresh the pinned local flags using `python scripts/update_flags.py`. Generated databases and source archives are not committed. Advanced deployments may set `SENTINEL_GEOIP_PATH` to a read-only compiled snapshot; the default is the web image's `/opt/sentinel/geoip.sqlite`.
 
+## Country activity map
+
+The dashboard includes a local world map highlighting countries of observed SSH connections. It follows the selected 24-hour/7-day/30-day window and refreshes every ten seconds with the overview. All in-window `connection` events are counted, not only the top ten IPs and not each authentication/command event. Brighter shading indicates more accepted connections on a relative logarithmic scale; country tooltips and the text list show exact counts.
+
+The country list preserves totals for small territories omitted from the simplified map. Unknown, unavailable and local/reserved IP locations are shown separately. These are approximate source-country counts, not proof of an attacker's nationality, identity or physical location. A connection alone does not establish malicious activity.
+
+Map paths are generated from SHA256-pinned [Natural Earth](https://www.naturalearthdata.com/) 5.1.2 public-domain country boundaries at 1:110m scale. The SVG is rendered locally with no tile server, map API, JavaScript map library or external IP lookup. Source/license/checksum metadata is in `static/map/`; maintainers can regenerate the asset with `python scripts/update_world_map.py`. The chart's existing statistics API and raw exports remain unchanged.
+
 ## Configuration
 
 No configuration file is required. Override defaults with shell environment variables (the examples below use Bash), an optional `.env` file based on `.env.example`, or an optional Compose override file. Recreate the affected containers to apply changes, for example:

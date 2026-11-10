@@ -11,6 +11,7 @@
   {% endfor %}
   </div>
   <div class="note"><span class="tag">{{ stats.unauthenticated }}</span> closed connections without authentication. A connection alone does not confirm an attack; incomplete SYN scans are not recorded.</div>
+  {% include 'country_map.html' %}
   <div class="rankings">
   {% for key, title, subtitle in [('top_ips','Most active IPs','By accepted connections'), ('top_users','Usernames','By authentication attempts'), ('top_commands','Top commands','Input to the simulated shell')] %}
   <article class="panel"><div class="panel-heading"><div><h2>{{ title }}</h2><p class="muted small">{{ subtitle }}</p></div><span class="muted small">TOP 10</span></div>

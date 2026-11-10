@@ -1,0 +1,22 @@
+<section id="country-map" class="panel country-map-panel" aria-labelledby="country-map-title">
+  <div class="panel-heading"><div><h2 id="country-map-title">Country activity</h2><p class="muted small">Observed source countries · accepted SSH connections</p></div><span class="map-total">{{ country_map.total_connections }} {{ 'connection' if country_map.total_connections == 1 else 'connections' }}</span></div>
+  <div class="map-layout">
+    <div class="map-visual">
+      {% if country_map.shapes %}<svg class="world-map" viewBox="0 0 960 480" role="img" aria-labelledby="world-map-title world-map-description">
+        <title id="world-map-title">World map of observed SSH connection origins</title>
+        <desc id="world-map-description">Countries with recorded connections are highlighted. Darker colors indicate fewer connections. Exact totals are available in the country list.</desc>
+        <path class="map-grid" d="M0 120H960M0 240H960M0 360H960M240 0V480M480 0V480M720 0V480"/>
+        {% for shape in country_map.shapes %}<path class="map-country map-level-{{ shape.level }}" d="{{ shape.path }}" fill-rule="evenodd" aria-label="{{ shape.name }}: {{ shape.count }} {{ 'connection' if shape.count == 1 else 'connections' }}"{% if shape.count %} tabindex="0"{% endif %}><title>{{ shape.name }}: {{ shape.count }} {{ 'connection' if shape.count == 1 else 'connections' }}</title></path>{% endfor %}
+      </svg>{% else %}<p class="empty-state">Map geometry is unavailable. Country totals remain listed.</p>{% endif %}
+      <div class="map-legend" aria-label="Color intensity: neutral means zero connections; highlighted colors range from fewer to more connections"><span><i class="map-swatch map-swatch-0"></i> No connections</span><span class="map-ramp"><span>Fewer</span>{% for level in range(1,6) %}<i class="map-swatch map-swatch-{{ level }}"></i>{% endfor %}<span>More</span></span></div>
+    </div>
+    <div class="map-summary"><h3>Source countries <span class="muted small">{{ country_map.countries|length }}</span></h3>
+      {% if country_map.countries %}<ol class="map-country-list">{% for country in country_map.countries %}<li><img class="country-flag" src="/static/flags/{{ country.code|lower }}.svg" alt="{{ country.code }}" width="20" height="15"><span class="map-country-name">{{ country.name }}{% if not country.drawn %}<small class="muted">Not drawn at this scale</small>{% endif %}</span><strong>{{ country.count }}</strong></li>{% endfor %}</ol>
+      {% elif country_map.total_connections == 0 %}<p class="map-empty muted">No connections in this time range.</p>
+      {% else %}<p class="map-empty muted">No country could be determined.</p>{% endif %}
+      <p class="map-unknown muted small">Unknown / local: {{ country_map.unknown_connections }}</p>
+      {% if country_map.not_drawn_connections %}<p class="muted small">{{ country_map.not_drawn_connections }} connections originate from countries not drawn at this scale.</p>{% endif %}
+    </div>
+  </div>
+  <p class="map-caption muted small">Approximate GeoIP, not proof of attacker identity or location. Connection counts do not establish malicious activity. Map: <a href="https://www.naturalearthdata.com" rel="noreferrer">Natural Earth</a> · local rendering.</p>
+</section>
