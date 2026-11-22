@@ -60,6 +60,39 @@ def test_all_commands_export_is_discoverable_and_not_paginated(web):
     assert next(row for row in commands if row['command'].startswith("'="))
 
 
+def test_sessions_filter_by_strict_command_count_before_pagination(web):
+    client, app, settings = web
+    rows = []
+    interesting = []
+    for count in [0, 1] + [2] * 52:
+        auth = event('auth_attempt', username='scanner', accepted=True)
+        rows.append(auth)
+        if count == 2:
+            interesting.append(auth['session_id'])
+        for _ in range(count):
+            command = event('command', command='echo synthetic')
+            command['session_id'] = auth['session_id']
+            rows.append(command)
+    (settings.event_dir / 'sessions.jsonl').write_text(''.join(json.dumps(row)+'\n' for row in rows))
+    Importer(app.state.db, settings.event_dir).run()
+    login(client)
+    url = '/history?commands_gt=1&username=scanner&kind=auth_attempt'
+    first = client.get(url)
+    ids = re.findall(r'aria-label="Session details ([^"]+)"', first.text)
+    assert len(ids) == 50 and set(ids) <= set(interesting)
+    assert 'commands_gt=1' in first.text and 'Next' in first.text
+    assert 'name="commands_gt"' in first.text and 'More than N commands' in first.text
+    second = client.get(url+'&page=2', headers={'HX-Request': 'true'})
+    other_ids = re.findall(r'aria-label="Session details ([^"]+)"', second.text)
+    assert len(other_ids) == 2 and set(ids + other_ids) == set(interesting)
+    assert '2 commands' in second.text and 'commands_gt=1' in second.text
+    assert 'No sessions match.' in client.get('/history?commands_gt=2').text
+    assert len(re.findall(r'aria-label="Session details', client.get('/history?commands_gt=0&page=2').text)) == 3
+    assert client.get('/history?commands_gt=').status_code == 200
+    for invalid in ('-1', '1.5', 'abc', '2147483648', '9' * 100):
+        assert client.get('/history', params={'commands_gt': invalid}).status_code == 400
+
+
 def test_same_origin_browser_login_is_accepted(web):
     client, _, _ = web
     assert login(client, headers={'Origin': 'http://localhost'}).status_code == 303

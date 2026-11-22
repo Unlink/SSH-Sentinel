@@ -89,13 +89,16 @@ class Database:
                                 [*params, min(max(limit, 1), 1000), max(0, offset)]).fetchall()
         return [self.decode(row) for row in rows]
 
-    def session_summaries(self, *, ip='', username='', kind='', session_id='', limit=50, offset=0):
+    def session_summaries(self, *, ip='', username='', kind='', session_id='', commands_gt=None, limit=50, offset=0):
         """Filter whole SSH sessions, then paginate; retain all their event counts."""
         having, params = [], []
         for expression, value in [('ip', ip), ("json_extract(data, '$.username')", username), ('kind', kind)]:
             if value:
                 having.append(f'MAX({expression} = ?) = 1')
                 params.append(value)
+        if commands_gt is not None:
+            having.append("SUM(kind='command') > ?")
+            params.append(commands_gt)
         where = ' WHERE session_id = ?' if session_id else ''
         values = ([session_id] if session_id else []) + params
         match = ' HAVING ' + ' AND '.join(having) if having else ''

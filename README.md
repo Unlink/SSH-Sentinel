@@ -54,6 +54,7 @@ For an explicit public TCP 2222 deployment on Windows/Docker Desktop, follow [th
 - Open a session for its chronological events, including captured passwords, commands, limits, and disconnection. Counts cover retained events; a missing disconnect is shown explicitly. Raw event APIs and JSON/CSV exports remain available.
 - **Commands CSV** and **Commands JSON** in session history export every retained command across all sessions, independently of the history filters and pagination. JSON preserves the original command text; CSV neutralizes formula prefixes. Events already removed by retention cannot be exported.
 - JSON/CSV exports respect the selected filters, require authentication, and stream data. CSV neutralizes inputs that could be interpreted as formulas.
+- In Sessions, **More than N commands** selects sessions with strictly more than N retained command events (for example, `0` requires at least one command). Leave it blank for any count. It combines with the other session filters and stays active while paging; command export buttons still export all retained commands.
 - All frontend libraries are local in `static/vendor`, with no CDN, third-party fonts, or telemetry.
 
 ## Country flags and ASN

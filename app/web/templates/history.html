@@ -6,6 +6,7 @@
   <label>Source IP<input name="ip" value="{{ selected.ip }}" placeholder="e.g. 192.0.2.1" maxlength="64"></label>
   <label>Username<input name="username" value="{{ selected.username }}" placeholder="All usernames" maxlength="4096"></label>
   <label>Contains event<select name="kind"><option value="">Any event</option>{% for kind in ['connection','handshake','auth_attempt','shell_start','command','shell_end','disconnect','forward_open','forward_close','limit','denied'] %}<option value="{{ kind }}" {% if selected.kind == kind %}selected{% endif %}>{{ kind }}</option>{% endfor %}</select></label>
+  <label>More than N commands<input type="number" name="commands_gt" value="{{ selected.commands_gt if selected.commands_gt is not none else '' }}" min="0" max="2147483647" step="1" placeholder="Any count" title="Only sessions with strictly more than this many retained command events"></label>
   <button class="primary" type="submit">Filter →</button><a class="quiet" href="/history">Clear</a>
 </form>
 <div id="history-results">{% include 'history_table.html' %}</div>

@@ -135,6 +135,11 @@ def filters(request):
 def history(request: Request, page: int = 1, session=Depends(require_session)):
     page = max(1, min(page, 10000))
     selected = filters(request)
+    threshold = request.query_params.get('commands_gt', '')
+    if threshold and (len(threshold) > 10 or not threshold.isascii() or not threshold.isdecimal()
+                      or int(threshold) > 2147483647):
+        raise HTTPException(400, 'Command threshold must be a non-negative integer up to 2147483647')
+    selected['commands_gt'] = int(threshold) if threshold else None
     sessions = request.app.state.db.session_summaries(**selected, limit=51, offset=(page - 1) * 50)
     context = dict(session=session, sessions=sessions[:50], has_next=len(sessions) > 50,
                    selected=selected, number=page, page='history')
