@@ -59,6 +59,22 @@ async def test_plain_tcp_disconnect_is_recorded(sensor):
     assert any(e['kind'] == 'disconnect' and not e['data']['authenticated'] for e in events)
 
 
+@pytest.mark.parametrize('command,expected', [
+    ('echo', '\n'),
+    ('echo OK', 'OK\n'),
+    ("echo; echo 'check_022c98c7dab946239ec2949862bf46c1_transport_done'",
+     '\ncheck_022c98c7dab946239ec2949862bf46c1_transport_done\n'),
+])
+async def test_probe_commands_work_over_ssh_and_keep_original_event(sensor, command, expected):
+    server, settings = sensor
+    async with asyncssh.connect('127.0.0.1', server.get_port(), username='root',
+                                password='synthetic', known_hosts=None) as conn:
+        result = await conn.run(command, check=True)
+        assert result.stdout == expected
+    assert any(e['kind'] == 'command' and e['data']['command'] == command
+               for e in records(settings.event_dir))
+
+
 async def test_interactive_limit_and_single_channel(sensor):
     server, settings = sensor
     async with asyncssh.connect('127.0.0.1', server.get_port(), username='root',

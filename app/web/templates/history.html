@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% block title %}Sessions · SSH Sentinel{% endblock %}
 {% block content %}
-<div class="page-heading"><div><p class="eyebrow">SSH SESSIONS</p><h1>Connections, grouped by session.</h1><p class="muted">One row per connection. Open a session to see credentials, commands, and its full timeline.</p></div></div>
+<div class="page-heading"><div><p class="eyebrow">SSH SESSIONS</p><h1>Connections, grouped by session.</h1><p class="muted">One row per connection. Open a session to see credentials, commands, and its full timeline.</p></div><div class="exports" aria-label="Export all retained commands"><a class="button" href="/export.csv?kind=command" title="Every retained command across all sessions, independent of the filters below">↓ Commands CSV</a><a class="button" href="/export.json?kind=command" title="Every retained command across all sessions, independent of the filters below">↓ Commands JSON</a></div></div>
 <form class="filters panel" action="/history" method="get" hx-get="/history" hx-target="#history-results" hx-push-url="true">
   <label>Source IP<input name="ip" value="{{ selected.ip }}" placeholder="e.g. 192.0.2.1" maxlength="64"></label>
   <label>Username<input name="username" value="{{ selected.username }}" placeholder="All usernames" maxlength="4096"></label>

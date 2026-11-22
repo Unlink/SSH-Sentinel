@@ -31,6 +31,35 @@ def login(client, password='a-long-test-password', headers=None):
     return client.post('/login', data={'username': 'admin', 'password': password, 'csrf': csrf}, headers=headers, follow_redirects=False)
 
 
+def test_all_commands_export_is_discoverable_and_not_paginated(web):
+    client, app, settings = web
+    rows = []
+    for index in range(1205):
+        row = event('command', username='scanner', command=f'echo synthetic-{index}')
+        rows.append(row)
+    hostile = event('command', command='=HYPERLINK("https://example.invalid")')
+    rows.extend([hostile, event('auth_attempt', username='scanner', password='must-not-export')])
+    (settings.event_dir / 'commands.jsonl').write_text(''.join(json.dumps(row)+'\n' for row in rows))
+    Importer(app.state.db, settings.event_dir).run()
+    for suffix in ('csv', 'json'):
+        assert client.get('/export.'+suffix+'?kind=command', follow_redirects=False).status_code == 303
+    login(client)
+    page = client.get('/history?username=absent&kind=disconnect').text
+    assert 'href="/export.csv?kind=command"' in page
+    assert 'href="/export.json?kind=command"' in page
+    response = client.get('/export.json?kind=command')
+    assert 'ssh-sentinel-commands.json' in response.headers['content-disposition']
+    exported = response.json()
+    assert len(exported) == 1206 and all(row['kind'] == 'command' for row in exported)
+    assert {row['id'] for row in exported} == {row['id'] for row in rows if row['kind'] == 'command'}
+    assert 'must-not-export' not in response.text
+    response = client.get('/export.csv?kind=command')
+    assert 'ssh-sentinel-commands.csv' in response.headers['content-disposition']
+    commands = list(csv.DictReader(io.StringIO(response.text)))
+    assert len(commands) == 1206
+    assert next(row for row in commands if row['command'].startswith("'="))
+
+
 def test_same_origin_browser_login_is_accepted(web):
     client, _, _ = web
     assert login(client, headers={'Origin': 'http://localhost'}).status_code == 303

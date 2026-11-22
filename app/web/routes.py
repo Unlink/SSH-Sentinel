@@ -193,5 +193,6 @@ def export(request: Request, format: str, session=Depends(require_session)):
                           json.dumps(data, ensure_ascii=True)]
                 writer.writerow([csv_cell(v) for v in values])
                 yield buf.getvalue()
+    filename = 'ssh-sentinel-commands' if selected['kind'] == 'command' else 'ssh-sentinel'
     return StreamingResponse(stream(), media_type='application/json' if format == 'json' else 'text/csv',
-                             headers={'Content-Disposition': f'attachment; filename="ssh-sentinel.{format}"'})
+                             headers={'Content-Disposition': f'attachment; filename="{filename}.{format}"'})
