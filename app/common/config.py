@@ -38,8 +38,8 @@ class Settings:
                   'session_seconds': (1, 3600), 'login_seconds': (1, 120),
                   'retention_days': (1, 3650), 'rotate_bytes': (1024, 64 * 1024 * 1024),
                   'spool_bytes': (65536, 10 * 1024**3), 'import_seconds': (1, 300),
-                  'max_db_events': (100, 1000000), 'max_event_storage_bytes': (1048576, 1024**3),
-                  'max_db_bytes': (16 * 1024**2, 4 * 1024**3), 'max_spool_files': (32, 16384)}
+                  'max_db_events': (100, 4 * 1024**2), 'max_event_storage_bytes': (1048576, 4 * 1024**3),
+                  'max_db_bytes': (16 * 1024**2, 8 * 1024**3), 'max_spool_files': (32, 16384)}
         for name, (low, high) in limits.items():
             if not low <= getattr(self, name) <= high:
                 raise ValueError(f'{name} must be between {low} and {high}')

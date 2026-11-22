@@ -103,12 +103,23 @@ A command-scoped shell override applies only to that invocation. Supply it again
 | `SESSION_SECONDS` | `300` | Absolute TCP/SSH session duration, including authentication |
 | `MAX_COMMANDS` | `200` | Commands per connection |
 | `SPOOL_BYTES` | `268435456` | Maximum JSONL spool size, 256 MiB by default |
-| `MAX_DB_EVENTS` | `100000` | Maximum SQLite event count; older events are removed even before retention expires |
-| `MAX_EVENT_STORAGE_BYTES` | `67108864` | Maximum sum of JSON data plus a conservative 1024-byte allowance per event |
-| `MAX_DB_BYTES` | `268435456` | Safety limit for the main SQLite file; must be at least twice the event budget |
+| `MAX_DB_EVENTS` | `100000` | Maximum SQLite event count, configurable up to 4,194,304; older events are removed even before retention expires |
+| `MAX_EVENT_STORAGE_BYTES` | `67108864` | Maximum sum of JSON data plus a conservative 1024-byte allowance per event; configurable up to 4 GiB |
+| `MAX_DB_BYTES` | `268435456` | Safety limit for the main SQLite file, configurable up to 8 GiB; must be at least twice the event budget |
 | `MAX_SPOOL_FILES` | `4096` | Maximum entries when scanning the spool directory; exceeding this pauses import |
 | `SENSOR_SUBNET` | `172.30.222.0/24` | Dedicated IPv4 sensor network; must match the firewall |
 | `WEB_SUBNET` | `172.30.223.0/24` | Separate dashboard bridge network |
+
+For a **4 GiB accounted event-data budget**, set all three limits together in the existing web service. Keep the other environment variables and volume mounts unchanged:
+
+```yaml
+environment:
+  SENTINEL_MAX_DB_EVENTS: "4194304"
+  SENTINEL_MAX_EVENT_STORAGE_BYTES: "4294967296"
+  SENTINEL_MAX_DB_BYTES: "8589934592"
+```
+
+The 8 GiB main-file ceiling preserves the required two-times headroom for SQLite pages/indexes; it does not preallocate an 8 GiB file or reserve that much RAM. The event-count ceiling above cannot prune before the 4 GiB data budget because every stored event is charged at least 1024 bytes. Smaller event-count limits still prune independently. Age retention also applies independently: set `SENTINEL_RETENTION_DAYS` on both services to the desired maximum age. WAL, the JSONL spool, temporary files and backups require additional disk space outside the main-file ceiling. Defaults remain unchanged, and increasing limits does not restore previously pruned events automatically. Deploy a web image containing these expanded limits before applying the values; older images reject them.
 
 Additional limits: 20 seconds for authentication, at most five rejected authentication attempts, one SSH session channel over the entire connection, 4096 characters per line, total input of 1 MiB and output of 64 KiB per session, 64 KiB per event, and file rotation at approximately 4 MiB or on a UTC date change. Longer fields are truncated. Public keys are rejected, but attempts/fingerprints are recorded. SCP, SFTP, agent/X11/Unix forwarding and remote TCP listeners are prohibited. Direct TCP forwarding is simulated by a local capture sink; it never resolves or connects to the requested destination. Unknown commands return a simulated error. Operational Docker logs are limited to 2 × 5 MB per container.
 

@@ -40,7 +40,8 @@ async def test_password_capture_exec_and_denied_channels(sensor, tmp_path):
     await asyncio.sleep(0.05)
     events = records(settings.event_dir)
     assert any(e['kind'] == 'connection' for e in events)
-    auth = next(e for e in events if e['kind'] == 'auth_attempt')
+    auth = next(e for e in events if e['kind'] == 'auth_attempt'
+                and e['data']['method'] == 'password')
     assert auth['data']['password'] == 'hunter2'
     assert auth['data']['username'] == 'intruder'
     assert any(e['kind'] == 'command' and e['data']['command'] == 'whoami' for e in events)
